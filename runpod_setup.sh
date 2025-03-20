@@ -7,6 +7,7 @@ set -e
 
 pwd
 cd ../workspace/xdit_runpod
+pwd
 
 # --- Install Miniconda on the persistent volume if not already installed ---
 if [ ! -d "/workspace/miniconda3" ]; then
