@@ -6,6 +6,7 @@ set -e
 # Assume xdit_runpod directory exists
 
 pwd
+cd ../workspace/xdit_runpod
 
 # --- Install Miniconda on the persistent volume if not already installed ---
 if [ ! -d "/workspace/miniconda3" ]; then
