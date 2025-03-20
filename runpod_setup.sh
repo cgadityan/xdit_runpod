@@ -5,6 +5,8 @@ set -e
 # cd /workspace'
 # Assume xdit_runpod directory exists
 
+pwd
+
 # --- Install Miniconda on the persistent volume if not already installed ---
 if [ ! -d "/workspace/miniconda3" ]; then
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -13,7 +15,6 @@ fi
 
 # Add the persistent Miniconda to PATH
 export PATH="/workspace/miniconda3/bin:$PATH"
-
 
 # --- Setup Conda Environment ---
 conda env create -f requirements.yml -n flux

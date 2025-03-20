@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+pwd
 conda init --all
 conda deactivate
 conda activate flux
