@@ -12,6 +12,9 @@ pwd
 python -m venv flux
 source flux/bin/activate
 pip install -r requirements.txt
+
+pip install torch==2.4.0 torchvision==0.19.0  --index-url https://download.pytorch.org/whl/cu118
+
 # --- Install Miniconda on the persistent volume if not already installed ---
 # if [ ! -d "/workspace/miniconda3" ]; then
 #     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
