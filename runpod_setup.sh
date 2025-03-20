@@ -11,7 +11,7 @@ pwd
 
 python -m venv flux
 source flux/bin/activate
-pip install requirements.txt
+pip install -r requirements.txt
 # --- Install Miniconda on the persistent volume if not already installed ---
 # if [ ! -d "/workspace/miniconda3" ]; then
 #     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
