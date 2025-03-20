@@ -9,7 +9,7 @@ pwd
 cd ../workspace/xdit_runpod
 pwd
 
-python -m venv /workspace/flux
+python -m venv flux
 source flux/bin/activate
 pip install requirements.txt
 # --- Install Miniconda on the persistent volume if not already installed ---
