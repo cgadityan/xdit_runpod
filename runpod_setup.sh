@@ -14,7 +14,6 @@ fi
 # Add the persistent Miniconda to PATH
 export PATH="/workspace/miniconda3/bin:$PATH"
 
-cd xdit_runpod
 
 # --- Setup Conda Environment ---
 conda env create -f requirements.yml -n flux
