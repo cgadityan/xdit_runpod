@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-pwd
+export PATH="/workspace/miniconda3/bin:$PATH" 
 conda init --all
 conda deactivate
 conda activate flux
