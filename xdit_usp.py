@@ -109,7 +109,7 @@ def create_inference_image(garment_path, model_path, mask_path, size=(576, 768))
 
 #############################################################################################
 
-def process_virtual_try_on(garment_path, model_path, mask_path, output_path, prompt=None, size=(576, 768), seed=42):
+def process_virtual_try_on(garment_path, model_path, mask_path, output_path, prompt=None, size=(576, 768), seeds=(42,21)):
     """Process virtual try-on using FLUX Fill model"""
     try:
         # Ensure size is a valid tuple
@@ -131,8 +131,7 @@ def process_virtual_try_on(garment_path, model_path, mask_path, output_path, pro
             prompt = "A photo of a person wearing the garment, detailed texture, high quality"
         
         # Run inference
-        generator = torch.Generator(device="cuda").manual_seed(seed)
-        
+        # generator = torch.Generator(device="cuda").manual_seed(seed)
         # result = pipe(
         #     height=size[1],
         #     width=size[0] * 2,  # Double width for side-by-side images
@@ -169,40 +168,46 @@ def process_virtual_try_on(garment_path, model_path, mask_path, output_path, pro
                 guidance_scale=30,
                 prompt=prompt,
                 output_type=input_config.output_type,
-                generator=torch.Generator(device="cuda").manual_seed(input_config.seed),
+                generator=torch.Generator(device="cuda").manual_seed(seeds[0]),
             ).images
     
         torch.cuda.reset_peak_memory_stats()
         start_time = time.time()
         
-        output = pipe(
-            height=size[1],
-            width=size[0] * 2,  # Double width for side-by-side images
-            image=combined_image,
-            mask_image=mask_image,
-            num_inference_steps=input_config.num_inference_steps,
-            max_sequence_length=512,
-            guidance_scale=30,
-            prompt=prompt,
-            output_type=input_config.output_type,
-            generator=torch.Generator(device="cuda").manual_seed(input_config.seed)
-        )
-
-        result = output.images[0]
+        output = []
+        result = []
+        tryon_result = []
+        for i in range(len(seeds)):
+            output.append(pipe(
+                height=size[1],
+                width=size[0] * 2,  # Double width for side-by-side images
+                image=combined_image,
+                mask_image=mask_image,
+                num_inference_steps=input_config.num_inference_steps,
+                max_sequence_length=512,
+                guidance_scale=30,
+                prompt=prompt,
+                output_type=input_config.output_type,
+                generator=torch.Generator(device="cuda").manual_seed(seeds[i])
+            ))
+        
+            result.append(output[i].images[0])
         
         end_time = time.time()
         elapsed_time = end_time - start_time
         peak_memory = torch.cuda.max_memory_allocated(device=f"cuda:{local_rank}")
 
-        
-        
+         
         # Extract the right half (try-on result)
         width = size[0]
-        tryon_result = result.crop((width, 0, width * 2, size[1]))
+        for res in result:
+            tryon_result.append(res.crop((width, 0, width * 2, size[1])))
         
-        # Save the try-on result
-        tryon_result = tryon_result.convert('RGB')  # Convert to RGB to ensure compatibility
-        tryon_result.save(output_path, format='PNG')
+        # Save the try-on results
+        for i, tryon in enumerate(tryon_result):
+            tryon = tryon.convert('RGB')  # Convert to RGB to ensure compatibility
+            output_name = f"{os.path.splitext(output_path)[0]}_result_{i}.png"
+            tryon.save(output_name, format='PNG')
         
         # Create a comparison panel (optional)
         garment_img = Image.open(garment_path).convert("RGB")
@@ -219,17 +224,24 @@ def process_virtual_try_on(garment_path, model_path, mask_path, output_path, pro
         # Fit images to panel size
         garment_fitted = fit_in_box(garment_img, size[0], size[1])
         model_fitted = fit_in_box(model_with_mask, size[0], size[1])
-        result_fitted = fit_in_box(tryon_result, size[0], size[1])
         
-        # Create panel
-        panel_width = size[0] * 3  # garment + model + result
-        panel_height = size[1]
-        panel = Image.new("RGB", (panel_width, panel_height), (255, 255, 255))
-        
-        # Paste images
-        panel.paste(garment_fitted, (0, 0))
-        panel.paste(model_fitted, (size[0], 0))
-        panel.paste(result_fitted, (size[0] * 2, 0))
+        # Create and save panels for both results
+        for i, tryon in enumerate(tryon_result):
+            result_fitted = fit_in_box(tryon, size[0], size[1])
+            
+            # Create panel
+            panel_width = size[0] * 3  # garment + model + result
+            panel_height = size[1]
+            panel = Image.new("RGB", (panel_width, panel_height), (255, 255, 255))
+            
+            # Paste images
+            panel.paste(garment_fitted, (0, 0))
+            panel.paste(model_fitted, (size[0], 0))
+            panel.paste(result_fitted, (size[0] * 2, 0))
+            
+            # Save panel
+            panel_path = f"{os.path.splitext(output_path)[0]}_panel_{i}.png"
+            panel.save(panel_path, format='PNG')
 
         if input_config.output_type == "pil":
             dp_group_index = get_data_parallel_rank()
@@ -241,12 +253,8 @@ def process_virtual_try_on(garment_path, model_path, mask_path, output_path, pro
                     image_name = f"flux_result_{parallel_info}_{image_rank}_tc_{engine_args.use_torch_compile}.png"
                     print(image_name)
         
-        # Save panel
-        panel_path = os.path.splitext(output_path)[0] + "_panel.png"
-        panel.save(panel_path, format='PNG')
-        
-        print(f"Try-on result saved to: {output_path}")
-        print(f"Comparison panel saved to: {panel_path}")
+        print(f"Try-on results saved with base name: {os.path.splitext(output_path)[0]}_result_[0-1].png")
+        print(f"Comparison panels saved with base name: {os.path.splitext(output_path)[0]}_panel_[0-1].png")
         
         return tryon_result, peak_memory, elapsed_time
         
@@ -331,7 +339,7 @@ if __name__ == "__main__":
     # parser.add_argument("--prompt", default="A photo of a person wearing the garment, detailed texture, high quality",
     #                     help="Text prompt for generation")
     parser.add_argument("--size", default="1224,1632", help="Output size as width,height")
-    # parser.add_argument("--seed", type=int, default=42, help="Random seed for generation")
+    parser.add_argument("--seeds", type=int, default="42,21", help="Random seed for generation")
     parser.add_argument("--cache_dir", default="../hf_cache/hub", help="Cache directory for models")
     
     # Parse all arguments at once
@@ -371,13 +379,21 @@ if __name__ == "__main__":
     # parser.add_argument("--cache_dir", default="../hf_cache/hub", help="Cache directory for models")
     
     # args = parser.parse_args()
+
+    try:
+        s1, s2 = map(int, args.seeds.split(','))
+        seeds = (s1, s2)
+    except:
+        print("Invalid seeds format. Using default 42 and 21.")
+        seeds = (42, 21)
+        
     
     # Parse size
     try:
         width, height = map(int, args.size.split(','))
         size = (width, height)
     except:
-        print("Invalid size format. Using default 720x960.")
+        print("Invalid size format. Using default 1224x1632.")
         # size = (720, 960)
         size = (1224, 1632)
     
@@ -435,7 +451,7 @@ if __name__ == "__main__":
         args.output,
         prompt=prompt,
         size=size,
-        seed=input_config.seed
+        seeds=seeds
     )
     
     if get_world_group().rank == get_world_group().world_size - 1:
