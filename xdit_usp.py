@@ -248,7 +248,7 @@ def process_virtual_try_on(garment_path, model_path, mask_path, output_path, pro
             num_dp_groups = get_data_parallel_world_size()
             dp_batch_size = (input_config.batch_size + num_dp_groups - 1) // num_dp_groups
             if is_dp_last_group():
-                for i, image in enumerate(output.images):
+                for i, image in enumerate(output[0].images):
                     image_rank = dp_group_index * dp_batch_size + i
                     image_name = f"flux_result_{parallel_info}_{image_rank}_tc_{engine_args.use_torch_compile}.png"
                     print(image_name)
@@ -339,7 +339,7 @@ if __name__ == "__main__":
     # parser.add_argument("--prompt", default="A photo of a person wearing the garment, detailed texture, high quality",
     #                     help="Text prompt for generation")
     parser.add_argument("--size", default="1224,1632", help="Output size as width,height")
-    parser.add_argument("--seeds", type=int, default="42,21", help="Random seed for generation")
+    parser.add_argument("--seeds", default="42,21", help="Random seed for generation")
     parser.add_argument("--cache_dir", default="../hf_cache/hub", help="Cache directory for models")
     
     # Parse all arguments at once
