@@ -332,15 +332,15 @@ if __name__ == "__main__":
     xFuserArgs.add_cli_args(parser)
     
     # Add FLUX Fill Virtual Try-On specific arguments
-    parser.add_argument("--model_img", default="data/model.jpg", help="Path to model image")
-    parser.add_argument("--garment", default="data/garment.jpg", help="Path to garment image")
-    parser.add_argument("--mask", default="data/mask.png", help="Path to mask image")
-    parser.add_argument("--output", default="data/output.jpg", help="Path to save output image")
+    parser.add_argument("--model_img", default="/workspace/xdit_runpod/data/model.jpg", help="Path to model image")
+    parser.add_argument("--garment", default="/workspace/xdit_runpod/data/garment.jpg", help="Path to garment image")
+    parser.add_argument("--mask", default="/workspace/xdit_runpod/data/mask.png", help="Path to mask image")
+    parser.add_argument("--output", default="/workspace/xdit_runpod/data/output.jpg", help="Path to save output image")
     # parser.add_argument("--prompt", default="A photo of a person wearing the garment, detailed texture, high quality",
     #                     help="Text prompt for generation")
     parser.add_argument("--size", default="1224,1632", help="Output size as width,height")
     parser.add_argument("--seeds", default="42,21", help="Random seed for generation")
-    parser.add_argument("--cache_dir", default="../hf_cache/hub", help="Cache directory for models")
+    parser.add_argument("--cache_dir", default="/workspace/hf_cache/hub", help="Cache directory for models")
     
     # Parse all arguments at once
     args = parser.parse_args()
@@ -398,7 +398,9 @@ if __name__ == "__main__":
         size = (1224, 1632)
     
     # Use default prompt if None was provided (this is redundant with the default parameter but kept for clarity)
-    prompt = args.prompt if args.prompt else "A photo of a person wearing the garment, detailed texture, high quality"
+    prompt = args.prompt if args.prompt else """Two-panel image showing a garment on the left and a model wearing the same garment on the right.
+[IMAGE1] White Adidas t-shirt with black trefoil logo and text.
+[IMAGE2] Model wearing a White Adidas t-shirt with black trefoil logo and text."""
 
     print("Loading FLUX Fill model...")
     # Initialize the pipeline with the correct model
